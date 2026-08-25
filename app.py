@@ -40,5 +40,11 @@ def toggle_task(task_id):
         """, (task_id,))
     return redirect(url_for('index'))
 
+@app.route('/clear', methods=['POST'])
+def clear_all():
+    with sqlite3.connect(DB_FILE) as conn:
+        conn.execute("DELETE FROM tasks")
+    return redirect(url_for('index'))
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

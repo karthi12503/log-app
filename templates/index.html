@@ -12,6 +12,12 @@
             <input type="text" name="title" class="form-control" placeholder="Enter task..." required>
             <button class="btn btn-primary" type="submit">Add Task</button>
         </form>
+        <!-- New Clear All Button -->
+        <div class="d-flex justify-content-end mb-3">
+            <form action="/clear" method="POST" onsubmit="return confirm('Clear all tasks?');">
+                <button class="btn btn-sm btn-outline-danger" type="submit">Clear All</button>
+            </form>
+        </div>
         <ul class="list-group shadow-sm">
             {% for id, title, status in tasks %}
             <li class="list-group-item d-flex justify-content-between align-items-center">
