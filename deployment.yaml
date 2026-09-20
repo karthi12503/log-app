@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: log-app-deployment
+  labels:
+    app: log-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: log-app
+  template:
+    metadata:
+      labels:
+        app: log-app
+    spec:
+      containers:
+      - name: log-app
+        image: karthickkumarm12/log-app
+        ports:
+        - containerPort: 5000
