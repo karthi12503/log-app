@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for
 import sqlite3
-import os
+from datetime import datetime
 
 app = Flask(__name__)
 DB_FILE = "tasks.db"
@@ -11,7 +11,10 @@ def init_db():
             CREATE TABLE IF NOT EXISTS tasks (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 title TEXT NOT NULL,
-                status TEXT DEFAULT 'Pending'
+                server TEXT DEFAULT 'All Servers',
+                priority TEXT DEFAULT 'Medium',
+                status TEXT DEFAULT 'Pending',
+                created_at TEXT
             )
         """)
 init_db()
@@ -19,15 +22,25 @@ init_db()
 @app.route('/')
 def index():
     with sqlite3.connect(DB_FILE) as conn:
-        tasks = conn.execute("SELECT id, title, status FROM tasks").fetchall()
+        tasks = conn.execute("""
+            SELECT id, title, server, priority, status, created_at 
+            FROM tasks ORDER BY id DESC
+        """).fetchall()
     return render_template('index.html', tasks=tasks)
 
 @app.route('/add', methods=['POST'])
 def add_task():
     title = request.form.get('title')
+    server = request.form.get('server') or 'General'
+    priority = request.form.get('priority') or 'Medium'
+    created_at = datetime.now().strftime("%d %b %H:%M")
+    
     if title:
         with sqlite3.connect(DB_FILE) as conn:
-            conn.execute("INSERT INTO tasks (title) VALUES (?)", (title,))
+            conn.execute("""
+                INSERT INTO tasks (title, server, priority, status, created_at)
+                VALUES (?, ?, ?, 'Pending', ?)
+            """, (title, server, priority, created_at))
     return redirect(url_for('index'))
 
 @app.route('/toggle/<int:task_id>')
@@ -47,4 +60,4 @@ def clear_all():
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000)
