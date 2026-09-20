@@ -1,6 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for
 import sqlite3
-from datetime import datetime
 
 app = Flask(__name__)
 DB_FILE = "tasks.db"
@@ -11,10 +10,9 @@ def init_db():
             CREATE TABLE IF NOT EXISTS tasks (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 title TEXT NOT NULL,
-                server TEXT DEFAULT 'All Servers',
-                priority TEXT DEFAULT 'Medium',
-                status TEXT DEFAULT 'Pending',
-                created_at TEXT
+                category TEXT DEFAULT 'Personal',
+                due_date TEXT DEFAULT '',
+                status TEXT DEFAULT 'Pending'
             )
         """)
 init_db()
@@ -23,24 +21,29 @@ init_db()
 def index():
     with sqlite3.connect(DB_FILE) as conn:
         tasks = conn.execute("""
-            SELECT id, title, server, priority, status, created_at 
+            SELECT id, title, category, due_date, status 
             FROM tasks ORDER BY id DESC
         """).fetchall()
-    return render_template('index.html', tasks=tasks)
+        
+        # Calculate stats
+        total = len(tasks)
+        completed = sum(1 for t in tasks if t[4] == 'Completed')
+        pending = total - completed
+
+    return render_template('index.html', tasks=tasks, total=total, pending=pending, completed=completed)
 
 @app.route('/add', methods=['POST'])
 def add_task():
     title = request.form.get('title')
-    server = request.form.get('server') or 'General'
-    priority = request.form.get('priority') or 'Medium'
-    created_at = datetime.now().strftime("%d %b %H:%M")
-    
+    category = request.form.get('category') or 'Personal'
+    due_date = request.form.get('due_date') or ''
+
     if title:
         with sqlite3.connect(DB_FILE) as conn:
             conn.execute("""
-                INSERT INTO tasks (title, server, priority, status, created_at)
-                VALUES (?, ?, ?, 'Pending', ?)
-            """, (title, server, priority, created_at))
+                INSERT INTO tasks (title, category, due_date, status)
+                VALUES (?, ?, ?, 'Pending')
+            """, (title, category, due_date))
     return redirect(url_for('index'))
 
 @app.route('/toggle/<int:task_id>')
@@ -51,6 +54,12 @@ def toggle_task(task_id):
             SET status = CASE WHEN status = 'Pending' THEN 'Completed' ELSE 'Pending' END 
             WHERE id = ?
         """, (task_id,))
+    return redirect(url_for('index'))
+
+@app.route('/delete/<int:task_id>')
+def delete_task(task_id):
+    with sqlite3.connect(DB_FILE) as conn:
+        conn.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
     return redirect(url_for('index'))
 
 @app.route('/clear', methods=['POST'])
